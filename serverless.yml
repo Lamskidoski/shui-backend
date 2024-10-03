@@ -1,0 +1,126 @@
+org: lamskidoski
+service: shui-exam
+frameworkVersion: "4"
+
+provider:
+  name: aws
+  profile: default
+  runtime: nodejs20.x
+  region: eu-north-1
+  environment:
+    STAGE: ${opt:stage, 'dev'}
+    DYNAMODB_TABLE: MessageTable
+  iam:
+    role: arn:aws:iam::180294218747:role/Shui-examinations-dev-eu-north-1-lambdaRole
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "dynamodb:PutItem"
+        - "dynamodb:UpdateItem"
+        - "dynamodb:GetItem"
+        - "dynamodb:Scan"
+        - "logs:CreateLogGroup"
+        - "logs:CreateLogStream"
+        - "logs:PutLogEvents"
+      Resource:
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+
+  httpApi:
+    cors:
+      allowedOrigins:
+        - "*"
+      allowedMethods:
+        - GET
+        - POST
+        - PUT
+      allowedHeaders:
+        - Content-Type
+        - X-Amz-Date
+        - Authorization
+        - X-Api-Key
+        - X-Amz-Security-Token
+
+functions:
+  get:
+    handler: functions/getMessage/index.getMessage
+    name: getMsg
+    events:
+      - httpApi:
+          path: /message
+          method: get
+
+  create:
+    handler: functions/createMessage/index.createMessage
+    name: createMsg
+    events:
+      - httpApi:
+          path: /message
+          method: post
+
+  update:
+    handler: functions/updateMessage/index.updateMessage
+    name: updateMsg
+    events:
+      - httpApi:
+          path: /message/{id}
+          method: put
+
+resources:
+  Resources:
+    MessagesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+
+# service: shui-exam
+
+# provider:
+#   name: aws
+#   runtime: nodejs20.x
+#   region: eu-north-1
+#   environment:
+#     DYNAMODB_TABLE: MessageTable
+
+# functions:
+#   create:
+#     handler: functions/createMessage/index.createMessage
+#     events:
+#       - httpApi:
+#           path: /message
+#           method: post
+
+#   get:
+#     handler: functions/getMessage/index.getMessage
+#     events:
+#       - httpApi:
+#           path: /message
+#           method: get
+
+#   update:
+#     handler: functions/updateMessage/index.updateMessage
+#     events:
+#       - httpApi:
+#           path: /message/{id}
+#           method: put
+
+# resources:
+#   Resources:
+#     MessagesTable:
+#       Type: AWS::DynamoDB::Table
+#       Properties:
+#         TableName: MessageTable
+#         AttributeDefinitions:
+#           - AttributeName: id
+#             AttributeType: S
+#         KeySchema:
+#           - AttributeName: id
+#             KeyType: HASH
+#         BillingMode: PAY_PER_REQUEST
